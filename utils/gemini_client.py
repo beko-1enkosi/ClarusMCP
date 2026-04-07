@@ -1,25 +1,29 @@
+import json
 import os
+
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-# Load environment variables from the .env file
 load_dotenv()
 
-# Initialize the Gemini client using the API key from the environment
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY is not set in the environment.")
 
+MODEL_ID = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+
 client = genai.Client(api_key=api_key)
 
-# We'll use the model recommended by Prompt Opinion
-MODEL_ID = "gemini-3.1-flash-lite-preview"
 
-def generate_structured_clinical_insight(system_instruction: str, user_prompt: str, response_schema: type) -> str:
+def generate_structured_clinical_insight(
+    system_instruction: str,
+    user_prompt: str,
+    response_schema,
+) -> dict:
     """
-    Sends a prompt to Gemini and enforces a specific JSON output structure.
-    This is critical for MCP tools, as the returning data must be predictable.
+    Call Gemini and request a structured JSON response.
+    Returns a Python dictionary safely.
     """
     try:
         response = client.models.generate_content(
@@ -29,10 +33,22 @@ def generate_structured_clinical_insight(system_instruction: str, user_prompt: s
                 system_instruction=system_instruction,
                 response_mime_type="application/json",
                 response_schema=response_schema,
-                temperature=0.2, # Keep it low for more deterministic, clinical outputs
+                temperature=0.2,
             ),
         )
-        return response.text
+
+        if not response.text:
+            return {"error": "Empty response from Gemini."}
+
+        return json.loads(response.text)
+
+    except json.JSONDecodeError as e:
+        return {
+            "error": "Gemini returned invalid JSON.",
+            "details": str(e),
+        }
     except Exception as e:
-        print(f"Error calling Gemini API: {e}")
-        return "{}"
+        return {
+            "error": "Gemini API call failed.",
+            "details": str(e),
+        }
