@@ -22,8 +22,8 @@ def generate_structured_clinical_insight(
     response_schema,
 ) -> dict:
     """
-    Call Gemini and request a structured JSON response.
-    Returns a Python dictionary safely.
+    Calls Gemini and requests structured JSON output.
+    Returns a Python dictionary.
     """
     try:
         response = client.models.generate_content(
