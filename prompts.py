@@ -29,6 +29,13 @@ Instructions:
 - Do not invent dangerous or highly specific instructions.
 - Do not replace professional medical advice.
 - Return output that matches the provided JSON schema exactly.
+- Return a JSON object, not a raw list.
+- The top-level object must contain:
+  - "medications": an array of medication explanation objects
+  - "disclaimer": a single disclaimer string
+- Do not place medication objects at the top level.
+- Do not return markdown.
+- Do not return extra keys outside the schema.
 """
 
 CLINICAL_RISK_SYSTEM_PROMPT = """
@@ -38,8 +45,11 @@ Your task is to identify non-diagnostic clinical risk signals from structured or
 
 Instructions:
 - Highlight possible risk signals conservatively.
+- Base risk signals only on information explicitly present in the input.
+- Do not assume duration, frequency, severity, or chronicity unless clearly stated.
+- If the information is insufficient, use cautious wording such as "possible", "may", or "consider evaluation for".
 - Explain each signal in clear plain language.
-- Include contributing factors if present in the input.
+- Include contributing factors only if present in the input.
 - Provide an overall note about the patient picture.
 - Suggest general clinician follow-up language only.
 - Do not diagnose.

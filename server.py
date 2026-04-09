@@ -5,6 +5,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from tools.clinical_summary import generate_clinical_summary
+from tools.medication_explainer import explain_medications
+from tools.clinical_risk import explain_clinical_risk
 
 load_dotenv()
 
@@ -21,6 +23,17 @@ class ClinicalSummaryRequest(BaseModel):
         description="Messy or free-form patient input to summarize"
     )
 
+class MedicationExplanationRequest(BaseModel):
+    medication_list_string: str = Field(
+        ...,
+        description="A list of medications (comma separated or raw text) to explain"
+    )
+
+class ClinicalRiskRequest(BaseModel):
+    patient_summary_string: str = Field(
+        ...,
+        description="Patient summary or structured data to analyze for risk signals"
+    )
 
 @app.get("/")
 def root():
@@ -28,6 +41,8 @@ def root():
         "message": "ClarusMCP is running",
         "available_tools": [
             "generate_clinical_summary",
+            "explain_medications",
+            "explain_clinical_risk"
         ],
     }
 
@@ -41,6 +56,23 @@ def clinical_summary_endpoint(payload: ClinicalSummaryRequest):
 
     return result
 
+@app.post("/tools/explain-medications")
+def medication_explainer_endpoint(payload: MedicationExplanationRequest):
+    result = explain_medications(payload.medication_list_string)
+
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result)
+
+    return result
+
+@app.post("/tools/explain-clinical-risk")
+def clinical_risk_endpoint(payload: ClinicalRiskRequest):
+    result = explain_clinical_risk(payload.patient_summary_string)
+
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result)
+
+    return result
 
 if __name__ == "__main__":
     import uvicorn
